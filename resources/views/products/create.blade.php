@@ -1,10 +1,9 @@
 @extends('layouts.app')
-
 @section('content')
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Create Product</h1>
     </div>
-    <form action="{{ route('product.store') }}" method="post" autocomplete="off" spellcheck="false">
+    <form action="{{ route('product.store') }}" method="post" id="productSaveForm" autocomplete="off" spellcheck="false">
         <section>
             <div class="row">
                 <div class="col-md-6">
@@ -17,7 +16,7 @@
                             <div class="form-group">
                                 <label for="product_name">Product Name</label>
                                 <input type="text"
-                                       name="product_name"
+                                       name="title"
                                        id="product_name"
                                        required
                                        placeholder="Product Name"
@@ -25,14 +24,14 @@
                             </div>
                             <div class="form-group">
                                 <label for="product_sku">Product SKU</label>
-                                <input type="text" name="product_sku"
+                                <input type="text" name="sku"
                                        id="product_sku"
                                        required
                                        placeholder="Product Name"
                                        class="form-control"></div>
                             <div class="form-group mb-0">
                                 <label for="product_description">Description</label>
-                                <textarea name="product_description"
+                                <textarea name="description"
                                           id="product_description"
                                           required
                                           rows="4"
@@ -87,12 +86,88 @@
                     </div>
                 </div>
             </div>
-            <button type="button" class="btn btn-lg btn-primary">Save</button>
+            <button type="button" class="btn btn-lg btn-primary" id="productSaveBtn">Save</button>
             <button type="button" class="btn btn-secondary btn-lg">Cancel</button>
         </section>
     </form>
 @endsection
-
 @push('page_js')
     <script type="text/javascript" src="{{ asset('js/product.js') }}"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+             addVariantTemplate();
+            $("#file-upload").dropzone({
+                headers: {'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')},
+                url: "{{ route('file-upload') }}",
+                method: "post",
+                addRemoveLinks: true,
+                success: function (file, response) {
+                    //
+                },
+                error: function (file, response) {
+                    //
+                }
+            });
+            $(document).on("click","#productSaveBtn",function(){
+               store_func("#productSaveForm");
+            })
+        })
+        function store_func(formId,config=false){
+            defaultConfig = {
+                url:$(formId).attr('action'),
+                method:'POST',
+                append:false,
+                loaderText:"Working...",
+                reload:false,
+                modal:'hide',
+                confirmText:'Do you want to Submit'
+            };
+            if(confirm("Are You Sure")){
+                let form=$(formId)[0];
+                let formData = new FormData(form);
+                $.ajax({
+                    headers: {'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')},
+                    type: config.method==undefined?defaultConfig.method:config.method,
+                    enctype: 'multipart/form-data',
+                    url: config.url==undefined?defaultConfig.url:config.url,
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    cache: false,
+                    async:false,
+                    timeout: 800000,
+                    beforeSend: function() {
+                       
+                    },
+                    success: function (data) {
+                        if(data.success){
+                           toastr.success("Product Succesfully Saved")
+                           setTimeout(function(){
+                            location.href="{{route('product.index')}}";
+                           },1500)
+                        }else{
+                            
+                        }
+                    },
+                    error: function (response, ajaxOptions, thrownError) {
+                        $('.overlay-wrapper').hide();
+                        //$(formId).parents('.modal').modal('show');
+                        if(response.status==422){
+                            let catchError=jQuery.parseJSON(response.responseText);
+                            let errorMsg='<ul>'
+                            $.each(catchError.errors,function(key,value){
+                                errorMsg+="<li>"+value+"</li>" ;
+                            })
+                            errorMsg+="</ul>"
+                            toastr.error(errorMsg)
+                        }else{
+                            toastr.error(response.responseText)
+                        }
+                    },
+                    complete: function(){
+                    }
+                })
+            }
+        }
+    </script>
 @endpush

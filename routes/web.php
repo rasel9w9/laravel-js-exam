@@ -21,7 +21,7 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
-Route::post('/dropzone', 'HomeController@index')->name('file-upload');
+Route::post('/dropzone', 'ProductController@saveAttachment')->name('file-upload');
 
 Route::middleware('auth')->group(function () {
     Route::resource('product-variant', 'VariantController');
